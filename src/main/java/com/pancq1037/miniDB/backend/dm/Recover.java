@@ -197,6 +197,8 @@ public class Recover {
     }
 
     // [LogType] [XID] [Pgno] [Offset] [Raw]
+//    private static final int OF_TYPE = 0;
+//    private static final int OF_XID = OF_TYPE+1;
     private static final int OF_INSERT_PGNO = OF_XID+8;
     private static final int OF_INSERT_OFFSET = OF_INSERT_PGNO+4;
     private static final int OF_INSERT_RAW = OF_INSERT_OFFSET+2;

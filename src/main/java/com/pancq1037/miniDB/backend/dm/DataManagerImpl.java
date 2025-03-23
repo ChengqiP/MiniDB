@@ -33,7 +33,9 @@ public class DataManagerImpl extends AbstractCache<DataItem> implements DataMana
 
     @Override
     public DataItem read(long uid) throws Exception {
+        //从缓存页面中读取到DataItemImpl
         DataItemImpl di = (DataItemImpl)super.get(uid);
+        //校验di是否有效
         if(!di.isValid()) {
             di.release();
             return null;
@@ -43,35 +45,47 @@ public class DataManagerImpl extends AbstractCache<DataItem> implements DataMana
 
     @Override
     public long insert(long xid, byte[] data) throws Exception {
+        // 将输入的数据包装成DataItem的原始格式
         byte[] raw = DataItem.wrapDataItemRaw(data);
+        // 如果数据项的大小超过了页面的最大空闲空间，抛出异常
         if(raw.length > PageX.MAX_FREE_SPACE) {
             throw Error.DataTooLargeException;
         }
 
+        // 初始化一个页面信息对象
         PageInfo pi = null;
+        // 尝试5次找到一个可以容纳新数据项的页面
         for(int i = 0; i < 5; i ++) {
             pi = pIndex.select(raw.length);
+            // 如果找到了合适的页面，跳出循环
             if (pi != null) {
                 break;
             } else {
+                // 如果没有找到合适的页面，创建一个新的页面，并将其添加到页面索引中
                 int newPgno = pc.newPage(PageX.initRaw());
                 pIndex.add(newPgno, PageX.MAX_FREE_SPACE);
             }
         }
+        // 如果还是没有找到合适的页面，抛出异常
         if(pi == null) {
             throw Error.DatabaseBusyException;
         }
-
+        // 初始化一个页面对象
         Page pg = null;
+        // 初始化空闲空间大小为0
         int freeSpace = 0;
         try {
+            // 获取页面信息对象中的页面
             pg = pc.getPage(pi.pgno);
+            // 生成插入日志
             byte[] log = Recover.insertLog(xid, pg, raw);
+            // 将日志写入日志文件
             logger.log(log);
-
+            // 在页面中插入新的数据项，并获取其在页面中的偏移量
             short offset = PageX.insert(pg, raw);
-
+            // 释放页面
             pg.release();
+            // 返回新插入的数据项的唯一标识符
             return Types.addressToUid(pi.pgno, offset);
 
         } finally {
@@ -86,9 +100,10 @@ public class DataManagerImpl extends AbstractCache<DataItem> implements DataMana
 
     @Override
     public void close() {
+        // 需要执行缓存和日志的关闭流程，
         super.close();
         logger.close();
-
+        // 还需要设置第一页的字节校验
         PageOne.setVcClose(pageOne);
         pageOne.release();
         pc.close();
@@ -140,7 +155,10 @@ public class DataManagerImpl extends AbstractCache<DataItem> implements DataMana
         return PageOne.checkVc(pageOne);
     }
 
-    // 初始化pageIndex
+    /**
+     * 填充 PageIndex。
+     * 遍历从第二页开始的每一页，将每一页的页面编号和空闲空间大小添加到 PageIndex 中。
+     */
     void fillPageIndex() {
         int pageNumber = pc.getPageNumber();
         for(int i = 2; i <= pageNumber; i ++) {
@@ -150,7 +168,9 @@ public class DataManagerImpl extends AbstractCache<DataItem> implements DataMana
             } catch (Exception e) {
                 Panic.panic(e);
             }
+            // 将页面编号和页面的空闲空间大小添加到 PageIndex 中
             pIndex.add(pg.getPageNumber(), PageX.getFreeSpace(pg));
+            // 注意在使用完 Page 后需要及时 release，否则可能会撑爆缓存
             pg.release();
         }
     }

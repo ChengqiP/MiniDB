@@ -24,11 +24,15 @@ public interface DataManager {
         PageCache pc = PageCache.open(path, mem);
         Logger lg = Logger.open(path);
         DataManagerImpl dm = new DataManagerImpl(pc, lg, tm);
+        // 加载并检查PageOne，如果检查失败，则进行恢复操作
         if(!dm.loadCheckPageOne()) {
             Recover.recover(tm, lg, pc);
         }
+        // 填充PageIndex，遍历从第二页开始的每一页，将每一页的页面编号和空闲空间大小添加到 PageIndex 中
         dm.fillPageIndex();
+        // 设置PageOne为打开状态
         PageOne.setVcOpen(dm.pageOne);
+        // 将PageOne立即写入到磁盘中，确保PageOne的数据被持久化
         dm.pc.flushPage(dm.pageOne);
 
         return dm;

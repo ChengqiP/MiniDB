@@ -150,8 +150,12 @@ public class LoggerImpl implements Logger {
 
     @Override
     public void truncate(long x) throws Exception {
+        // 加锁操作，确保在多线程环境下，同一时间只有一个线程能执行文件截断操作
+        // 避免多个线程同时修改文件，造成数据不一致或文件损坏
         lock.lock();
         try {
+            // 调用 FileChannel 的 truncate 方法将文件截断到指定的位置 x
+            // 如果文件当前长度大于 x，超出部分会被删除；若小于 x，文件长度不会改变
             fc.truncate(x);
         } finally {
             lock.unlock();

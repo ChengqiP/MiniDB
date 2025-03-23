@@ -52,15 +52,18 @@ public class DataItemImpl implements DataItem {
     public void before() {
         wLock.lock();
         pg.setDirty(true);
+        //保存原始数据的副本，以便在需要时进行回滚
         System.arraycopy(raw.raw, raw.start, oldRaw, 0, oldRaw.length);
     }
 
+    // 在需要撤销修改时调用，用于恢复原始数据并解锁数据项
     @Override
     public void unBefore() {
         System.arraycopy(oldRaw, 0, raw.raw, raw.start, oldRaw.length);
         wLock.unlock();
     }
 
+    // 在修改完成之后调用，用于记录日志并解锁数据项
     @Override
     public void after(long xid) {
         dm.logDataItem(xid, this);

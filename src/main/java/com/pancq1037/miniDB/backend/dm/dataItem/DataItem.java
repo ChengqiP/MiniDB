@@ -38,7 +38,7 @@ public interface DataItem {
         byte[] raw = pg.getData();
         short size = Parser.parseShort(Arrays.copyOfRange(raw, offset+DataItemImpl.OF_SIZE, offset+DataItemImpl.OF_DATA));
         short length = (short)(size + DataItemImpl.OF_DATA);
-        long uid = Types.addressToUid(pg.getPageNumber(), offset);
+        long uid = Types.addressToUid(pg.getPageNumber(), offset); // 页号+offset
         return new DataItemImpl(new SubArray(raw, offset, offset+length), new byte[length], pg, uid, dm);
     }
 

@@ -23,6 +23,7 @@ public class PageX {
         return raw;
     }
 
+    // 把足以2个字节表示的offset（ofData）存到raw字节数组的[0:2]位置
     private static void setFSO(byte[] raw, short ofData) {
         System.arraycopy(Parser.short2Byte(ofData), 0, raw, OF_FREE, OF_DATA);
     }
@@ -32,6 +33,7 @@ public class PageX {
         return getFSO(pg.getData());
     }
 
+    // 从raw字节数组的[0:2]位置，get读取offset并返回
     private static short getFSO(byte[] raw) {
         return Parser.parseShort(Arrays.copyOfRange(raw, 0, 2));
     }
@@ -45,7 +47,8 @@ public class PageX {
         return offset;
     }
 
-    // 获取页面的空闲空间大小
+    // 获取页面的空闲空间大小，freeSpace通过页面大小（1<<13）减去offset得到
+    // （offset考虑到了前2个固定的字节，因此就算没数据，是空的，offset也至少是2）
     public static int getFreeSpace(Page pg) {
         return PageCache.PAGE_SIZE - (int)getFSO(pg.getData());
     }
